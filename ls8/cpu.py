@@ -13,26 +13,27 @@ class CPU:
         self.pc = 0
         self.running = True
 
-    def load(self):
+    def load(self, filename):
         """Load a program into memory."""
 
         address = 0
 
-        # For now, we've just hardcoded a program:
+        try:
+            with open(filename) as file:
+                for line in file:
+                    # Some lines will have a comment after the binary input.
+                    # Need to strip that off the end
+                    split_comment = line.split('#')
+                    value = split_comment[0].strip()
 
-        program = [
-            # From print8.ls8
-            0b10000010,  # LDI R0,8
-            0b00000000,
-            0b00001000,
-            0b01000111,  # PRN R0
-            0b00000000,
-            0b00000001,  # HLT
-        ]
-
-        for instruction in program:
-            self.ram[address] = instruction
-            address += 1
+                    # Converting the string to a number. Have to identify there's
+                    # Two bytes using base = 2
+                    convert = int(value, base=2)
+                    self.ram[address] = convert
+                    address += 1
+        except FileNotFoundError:
+            print("File was not found.")
+            sys.exit(1)
 
     def alu(self, op, reg_a, reg_b):
         """ALU operations."""
@@ -40,6 +41,9 @@ class CPU:
         if op == "ADD":
             self.reg[reg_a] += self.reg[reg_b]
         # elif op == "SUB": etc
+        elif op == "MUL":
+            self.reg[reg_a] *= self.reg[reg_b]
+            self.pc += 3
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -76,6 +80,7 @@ class CPU:
 
             op_a = self.ram_read(self.pc + 1)
             op_b = self.ram_read(self.pc + 2)
+            self.trace()
 
             if instruction_reg == 0b10000010:  # LDI
                 self.reg[op_a] = op_b
@@ -88,6 +93,9 @@ class CPU:
             elif instruction_reg == 0b00000001:  # HTL
                 print("The program is now stopping due to a HALT function.")
                 self.running = False
+
+            elif instruction_reg == 0b10100010:  # MUL
+                self.alu("MUL", op_a, op_b)
 
             else:
                 print(
