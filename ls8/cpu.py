@@ -12,6 +12,7 @@ class CPU:
         self.reg = [0] * 8
         self.pc = 0
         self.running = True
+        self.stack_pointer = 7
 
     def load(self, filename):
         """Load a program into memory."""
@@ -80,7 +81,6 @@ class CPU:
 
             op_a = self.ram_read(self.pc + 1)
             op_b = self.ram_read(self.pc + 2)
-            self.trace()
 
             if instruction_reg == 0b10000010:  # LDI
                 self.reg[op_a] = op_b
@@ -96,6 +96,20 @@ class CPU:
 
             elif instruction_reg == 0b10100010:  # MUL
                 self.alu("MUL", op_a, op_b)
+
+            elif instruction_reg == 0b01000110:  # POP
+                given_register = self.ram[self.pc + 1]
+                value_from_memory = self.ram[self.reg[self.stack_pointer]]
+                self.reg[given_register] = value_from_memory
+                self.reg[self.stack_pointer] += 1
+                self.pc += 2
+
+            elif instruction_reg == 0b01000101:  # PUSH
+                given_register = self.ram[self.pc + 1]
+                value_in_register = self.reg[given_register]
+                self.reg[self.stack_pointer] -= 1
+                self.ram[self.reg[self.stack_pointer]] = value_in_register
+                self.pc += 2
 
             else:
                 print(
